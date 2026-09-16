@@ -1,0 +1,52 @@
+# The suite, on every pull request. Two jobs: the newest PHP with the
+# newest dependencies, and the oldest PHP the manifest allows with the
+# oldest dependencies, because a floor in composer.json is a promise about a
+# machine nobody on this project runs, and the only thing that makes it
+# true is a runner that is that machine.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}, ${{ matrix.dependencies }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            dependencies: highest
+          - php: '8.2'
+            dependencies: lowest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, intl
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ matrix.dependencies }}" = "lowest" ]; then
+            composer update --prefer-lowest --prefer-stable --no-interaction --no-progress
+          else
+            composer update --no-interaction --no-progress
+          fi
+
+      - run: vendor/bin/pest --ci
