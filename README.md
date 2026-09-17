@@ -240,10 +240,16 @@ work to these signals. Reel narrows the problem; it does not close it.
 ## Support
 
 Reel is sold on the Statamic Marketplace, one licence per production site,
-with local development and CI free under Statamic's own terms. Bugs and
-questions go to the repository's issue tracker. A caption file the parser
-gets wrong is a bug: send the file, or the shape of it, and it becomes a
-fixture.
+with local development and CI free under Statamic's own terms.
+
+Bugs and questions go to
+[GitHub Issues](https://github.com/bpmore/statamic-reel/issues). A caption
+file the parser gets wrong is a bug: attach the file, or the shape of it,
+and it becomes a fixture. Issues are answered by the author; there is no
+service-level agreement.
+
+`ext-intl` is optional. With it, each `<track>` is labelled in its own
+language ("Français"); without it, the label is the language code.
 
 ## Developing
 

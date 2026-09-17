@@ -1,0 +1,10 @@
+# What a customer downloads is the addon, not its test suite. The fixtures
+# under tests/ include files written by other people (see
+# tests/__fixtures__/real/SOURCES.md), which are licensed for redistribution
+# but have no reason to be in a customer's vendor directory.
+/.github        export-ignore
+/.gitattributes export-ignore
+/docs           export-ignore
+/phpunit.xml    export-ignore
+/tests          export-ignore
+/CLAUDE.md      export-ignore
