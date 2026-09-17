@@ -19,6 +19,10 @@
             "homepage": "https://hada.farm"
         }
     ],
+    "support": {
+        "issues": "https://github.com/bpmore/statamic-reel/issues",
+        "source": "https://github.com/bpmore/statamic-reel"
+    },
     "require": {
         "php": "^8.2",
         "ext-mbstring": "*",
@@ -27,6 +31,9 @@
     "require-dev": {
         "orchestra/testbench": "^10.11 || ^11.0",
         "pestphp/pest": "^3.8 || ^4.0"
+    },
+    "suggest": {
+        "ext-intl": "Names each caption track in its own language (\"Deutsch\", \"Français\") in the label of the <track> element. Without it the label is the language code."
     },
     "autoload": {
         "psr-4": {

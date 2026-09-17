@@ -16,9 +16,20 @@ and saying so in the changelog. Dated 2026-09-15.
 
 ## Later
 
-3. **Tag 0.1.0** and decide on a Statamic Marketplace listing. The brief's
-   target price is $69. The listing copy is the README's first paragraph:
-   Reel does not generate captions.
+3. **Marketplace submission.** In this order, once items 1 and 2 are done
+   and the addon has been tested to your satisfaction:
+   - Make `bpmore/statamic-reel` public. The README and composer.json
+     already name GitHub Issues as the support channel, which is a dead
+     link until then (Rule 09).
+   - Take screenshots on greenhouse: the Tools page, one asset's criteria
+     table, the editor with a finding. Real screens only (Rule 10).
+   - Check the Tools page and editor at phone width (Rule 05). Keyboard is
+     verified; small screens are not.
+   - Tag `0.1.0`. The Marketplace reviews the tagged release (Rule 06).
+   - Run Statamic's review skill once more against the tag:
+     `curl -sL https://statamic.com/downloads/marketplace-review/SKILL.md`.
+   The brief's target price is $69. The listing copy is the README's
+   first paragraph: Reel does not generate captions.
 4. **A "captions reviewed by a person" flag.** A track scored "likely
    machine" stays at Review forever, even after someone confirms it was
    corrected. The brief did not ask for one; ask before adding it, since it
