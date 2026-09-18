@@ -28,6 +28,7 @@ and saying so in the changelog. Dated 2026-09-15.
    - Tag `0.1.0`. The Marketplace reviews the tagged release (Rule 06).
    - Run Statamic's review skill once more against the tag:
      `curl -sL https://statamic.com/downloads/marketplace-review/SKILL.md`.
+     The pass against `4ba115a` is in `docs/MARKETPLACE-REVIEW.md`; compare.
    The brief's target price is $69. The listing copy is the README's
    first paragraph: Reel does not generate captions.
 4. **A "captions reviewed by a person" flag.** A track scored "likely
