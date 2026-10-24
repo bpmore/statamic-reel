@@ -23,7 +23,6 @@ and saying so in the changelog. Dated 2026-09-15.
      link until then (Rule 09).
    - Check the Tools page and editor at phone width (Rule 05). Keyboard is
      verified; small screens are not.
-   - Tag `0.1.0`. The Marketplace reviews the tagged release (Rule 06).
    - Run Statamic's review skill once more against the tag:
      `curl -sL https://statamic.com/downloads/marketplace-review/SKILL.md`.
      The pass against `4ba115a` is in `docs/MARKETPLACE-REVIEW.md`; compare.
