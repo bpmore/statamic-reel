@@ -2,17 +2,10 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
-## Unreleased
+## 0.1.0, 2026-10-23
 
-- The caption editor's cue fields (identifier, start, end, settings) sit
-  side by side again. The grid used a class Statamic's stylesheet does not
-  contain, so they stacked in one column at every width.
-- The listing screenshots are taken, from greenhouse, and kept outside the
-  repository in `~/Herd/statamic-reel-screenshots`.
-
-## 0.1.0, 2026-09-15
-
-The first build, against the brief in `docs/build-reel.md`.
+The first release. Built 2026-09-15 against the brief in
+`docs/build-reel.md`.
 
 - A WebVTT parser, validator, serializer and quality analyzer in
   `src/Vtt`, with no Statamic in it. Malformed input returns errors with
@@ -30,7 +23,10 @@ The first build, against the brief in `docs/build-reel.md`.
   refusing with the reasons under the field that holds the media.
 - A page under Tools with every media asset, a per-asset criteria view,
   and a keyboard-operable caption editor with live findings. Saving is the
-  addon's one write path and needs its own permission.
+  addon's one write path and needs its own permission. A cue's fields sit
+  four across on a wide screen and one per row on a phone.
 - `php please reel:audit`, with `--json` as clean stdout and exit codes 0,
   1 and 2.
 - `{{ reel:tracks }}` and `{{ reel:transcript }}`.
+- The listing screenshots, taken on greenhouse and kept outside the
+  repository in `~/Herd/statamic-reel-screenshots`.
