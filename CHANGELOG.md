@@ -2,6 +2,14 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- The caption editor's cue fields (identifier, start, end, settings) sit
+  side by side again. The grid used a class Statamic's stylesheet does not
+  contain, so they stacked in one column at every width.
+- The listing screenshots are taken, from greenhouse, and kept outside the
+  repository in `~/Herd/statamic-reel-screenshots`.
+
 ## 0.1.0, 2026-09-15
 
 The first build, against the brief in `docs/build-reel.md`.
