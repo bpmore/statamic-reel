@@ -2,6 +2,13 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- The editor was used for real: `campus-tour.vtt` on greenhouse was fixed
+  from the keyboard (the overlap on cue 3 and the comma on cue 4) and
+  saved with every cue intact. It is off the to-do list, with the
+  marketplace steps that are done.
+
 ## 0.1.2, 2026-10-24
 
 - A cue whose timing cannot be read stays in the file. It used to be
