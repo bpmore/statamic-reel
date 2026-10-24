@@ -78,6 +78,21 @@ it('carries the parser errors for a malformed timestamp and a missing header as 
     expect($findings[0]->line)->toBe(6);
 });
 
+it('reports an unreadable cue once, on that cue, and numbers the cues after it the way the editor does', function () {
+    $parsed = (new Parser)->parse("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nOk\n\n00:00:03,000 --> 00:00:04.000\nBad\n\n00:00:05.000 --> 00:00:05.000\nNever shows\n");
+    $findings = (new Validator)->validate($parsed->document, $parsed->errors);
+
+    expect(codes($findings))->toBe(['malformed-timestamp', 'zero-duration']);
+    expect($findings[0]->cue)->toBe(1);
+    expect($findings[0]->line)->toBe(6);
+    expect($findings[1]->cue)->toBe(2);
+    expect($findings[1]->message)->toStartWith('Cue 3 ');
+
+    // The same document from the editor, with no parse errors to carry: the
+    // cue still says what is wrong with it.
+    expect(codes((new Validator)->validate($parsed->document)))->toBe(['malformed-timestamp', 'zero-duration']);
+});
+
 it('passes the professional fixture and the complex fixture clean', function () {
     expect(validate(captions('lecture-professional.vtt')))->toBe([]);
     expect(validate(captions('complex.vtt')))->toBe([]);

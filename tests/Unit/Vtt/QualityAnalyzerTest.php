@@ -115,3 +115,16 @@ it('builds thresholds from config with a preset as the base and overrides on top
     // An unknown preset is an error at configuration time, not a silent default.
     expect(fn () => QualityThresholds::preset('nope'))->toThrow(InvalidArgumentException::class);
 });
+
+it('numbers a cue after an unread one as the file and the editor do', function () {
+    // Cue 2's timing has an SRT comma, so cue 3 is the second readable cue.
+    // Its finding still has to say "Cue 3" and point at the third cue.
+    $long = str_repeat('a', 50);
+    $findings = analyze("WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nOk\n\n00:00:04,000 --> 00:00:06.000\nBad\n\n00:00:07.000 --> 00:00:09.000\n{$long}\n");
+
+    $lineLength = array_values(array_filter($findings, fn ($f) => $f->code === 'line-length'));
+
+    expect($lineLength)->toHaveCount(1);
+    expect($lineLength[0]->cue)->toBe(2);
+    expect($lineLength[0]->message)->toStartWith('Cue 3 ');
+});

@@ -83,9 +83,41 @@ it('inspects an unsaved document and reports findings by cue', function () {
     expect($json['inspection']['errors'][0]['cue'])->toBe(1);
     expect($json['document']['blocks'][1]['settings'])->toBe(['align' => 'start']);
 
-    $this->postJson(cp_route('utilities.reel.captions.inspect'), ['document' => ['blocks' => [['type' => 'cue', 'start' => 'nope', 'end' => '00:00:01.000']]]])
+    // A timestamp being typed is not a reason to stop checking: the cue
+    // carries the error, and the rest of the file is still checked.
+    $json = $this->postJson(cp_route('utilities.reel.captions.inspect'), ['document' => ['blocks' => [['type' => 'cue', 'start' => 'nope', 'end' => '00:00:01.000']]]])
+        ->assertOk()
+        ->json();
+
+    expect($json['inspection']['errors'][0]['code'])->toBe('malformed-timestamp');
+    expect($json['inspection']['errors'][0]['cue'])->toBe(0);
+    expect($json['document']['blocks'][0]['start'])->toBe('nope');
+});
+
+it('shows a cue whose timing cannot be read, refuses to save it unfixed, and saves it fixed', function () {
+    $vtt = "WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\nFirst\n\n2\n00:00:08,000 --> 00:00:10.500\nThe gardens are open until dusk.\n";
+    mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.vtt', $vtt);
+
+    $json = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json();
+    $document = $json['document'];
+
+    expect($document['blocks'])->toHaveCount(2);
+    expect($document['blocks'][1]['type'])->toBe('cue');
+    expect($document['blocks'][1]['start'])->toBe('00:00:08,000');
+    expect($document['blocks'][1]['text'])->toBe('The gardens are open until dusk.');
+    expect($json['inspection']['errors'][0]['cue'])->toBe(1);
+
+    // Saving it as it is would have to drop the cue or write a broken file.
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])
         ->assertStatus(422)
-        ->assertJsonPath('message', 'The cue start "nope" is not a timestamp.');
+        ->assertJsonPath('message', 'Cue 2 has timing that cannot be read. Fix it, or delete the cue, then save.');
+    expect(Storage::disk('media')->get('clips/talk.vtt'))->toBe($vtt);
+
+    $document['blocks'][1]['start'] = '00:00:08.000';
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])->assertOk();
+
+    expect(Storage::disk('media')->get('clips/talk.vtt'))->toBe(str_replace('00:00:08,000', '00:00:08.000', $vtt));
 });
 
 it('writes the edited captions back to the asset, through the serializer', function () {

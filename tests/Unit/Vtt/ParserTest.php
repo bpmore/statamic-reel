@@ -9,6 +9,7 @@ use Bpmore\Reel\Vtt\Region;
 use Bpmore\Reel\Vtt\Serializer;
 use Bpmore\Reel\Vtt\Style;
 use Bpmore\Reel\Vtt\Timestamp;
+use Bpmore\Reel\Vtt\UnreadCue;
 
 /*
  * The parser. Boots nothing: a string in, a document and a list of errors out.
@@ -50,6 +51,31 @@ it('returns a structured error naming line 7 for a corrupt timestamp there, and 
     expect($cues)->toHaveCount(2);
     expect($cues[0]->text)->toBe('First');
     expect($cues[1]->text)->toBe('Third');
+});
+
+it('keeps a cue whose timing cannot be read, in place, so writing the file back does not delete it', function () {
+    // The SRT comma on campus-tour.vtt. The cue used to be skipped, so the
+    // editor never showed it and a save wrote the file without its text.
+    $vtt = "WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\nFirst\n\n2\n00:00:08,000 --> 00:00:10.500\nThe gardens are open until dusk.\n\n3\n00:00:11.000 --> 00:00:12.000\nThird\n";
+
+    $result = (new Parser)->parse($vtt);
+
+    expect($result->ok())->toBeFalse();
+    expect($result->document->cues())->toHaveCount(2);
+    expect($result->document->blocks)->toHaveCount(3);
+    expect($result->document->blocks[1])->toBeInstanceOf(UnreadCue::class);
+    expect($result->document->blocks[1]->text)->toBe('The gardens are open until dusk.');
+    expect((new Serializer)->serialize($result->document))->toBe($vtt);
+});
+
+it('keeps a block with no timing line as a cue to be timed, not as nothing', function () {
+    $vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nFirst\n\nA line someone forgot to time\n";
+
+    $result = (new Parser)->parse($vtt);
+
+    expect($result->errors[0]->code)->toBe('cue-missing-timing');
+    expect($result->document->blocks[1])->toBeInstanceOf(UnreadCue::class);
+    expect((new Serializer)->serialize($result->document))->toBe($vtt);
 });
 
 it('never throws, whatever it is given', function (string $input) {

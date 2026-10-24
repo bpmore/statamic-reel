@@ -9,11 +9,17 @@ namespace Bpmore\Reel\Vtt;
  *
  * Follows the file-format section of the WebVTT spec block by block: a block
  * is a run of non-blank lines, and the first line says what it is. What
- * cannot be read is recorded with its line number and skipped, and reading
- * continues, because an editor has to open the file to fix it.
+ * cannot be read is recorded with its line number and reading continues,
+ * because an editor has to open the file to fix it. A cue whose timing
+ * cannot be read is kept as an `UnreadCue`, not skipped: skipping it meant
+ * the next save deleted it.
  */
 final class Parser
 {
+    private const TIMING = '/^(\S+)[ \t]*-->[ \t]*(\S+)(?:[ \t]+(.*))?$/';
+
+    public const MISSING_TIMING = 'This block has no timing line ("00:00:01.000 --> 00:00:02.000"), so it cannot be a cue.';
+
     public function parse(string $vtt): ParseResult
     {
         // A file from an unknown tool can be anything; invalid UTF-8 would
@@ -133,7 +139,8 @@ final class Parser
 
                 if (! str_contains($block[$offset], '-->')) {
                     if (! isset($block[$offset + 1]) || ! str_contains($block[$offset + 1], '-->')) {
-                        $errors[] = new ParseError($startLine + $offset, 'cue-missing-timing', 'This block has no timing line ("00:00:01.000 --> 00:00:02.000"), so it cannot be a cue.');
+                        $errors[] = new ParseError($startLine + $offset, 'cue-missing-timing', self::MISSING_TIMING);
+                        $blocks[] = new UnreadCue(null, '', implode("\n", array_slice($block, $offset)), $startLine + $offset);
 
                         break;
                     }
@@ -155,6 +162,8 @@ final class Parser
                 if ($timing !== null) {
                     [$start, $end, $settings] = $timing;
                     $blocks[] = new Cue($start, $end, implode("\n", $payload), $id, $settings, $startLine + $timingAt);
+                } else {
+                    $blocks[] = new UnreadCue($id, $block[$timingAt], implode("\n", $payload), $startLine + $timingAt);
                 }
 
                 $offset = $next;
@@ -170,10 +179,28 @@ final class Parser
      */
     private function timing(string $line, int $number, array &$errors): ?array
     {
-        if (! preg_match('/^(\S+)[ \t]*-->[ \t]*(\S+)(?:[ \t]+(.*))?$/', $line, $m)) {
-            $errors[] = new ParseError($number, 'malformed-timestamp', 'The timing line could not be read: "'.$this->excerpt($line).'". Expected "00:00:01.000 --> 00:00:02.000".');
+        $problem = self::timingProblem($line);
+
+        if ($problem !== null) {
+            $errors[] = new ParseError($number, 'malformed-timestamp', $problem);
 
             return null;
+        }
+
+        preg_match(self::TIMING, $line, $m);
+
+        return [Timestamp::parse($m[1]), Timestamp::parse($m[2]), CueSettings::parse($m[3] ?? '')];
+    }
+
+    /**
+     * Why a timing line cannot be read, or null when it can. Public so an
+     * unread cue edited in the control panel is described in the same words
+     * as one read from a file.
+     */
+    public static function timingProblem(string $line): ?string
+    {
+        if (! preg_match(self::TIMING, $line, $m)) {
+            return 'The timing line could not be read: "'.self::excerpt($line).'". Expected "00:00:01.000 --> 00:00:02.000".';
         }
 
         $start = Timestamp::parse($m[1]);
@@ -181,15 +208,14 @@ final class Parser
 
         if ($start === null || $end === null) {
             $bad = $start === null ? $m[1] : $m[2];
-            $errors[] = new ParseError($number, 'malformed-timestamp', 'The timestamp "'.$this->excerpt($bad).'" could not be read. Expected "00:00:01.000" (hours optional, three decimals, a full stop and not a comma).');
 
-            return null;
+            return 'The timestamp "'.self::excerpt($bad).'" could not be read. Expected "00:00:01.000" (hours optional, three decimals, a full stop and not a comma).';
         }
 
-        return [$start, $end, CueSettings::parse($m[3] ?? '')];
+        return null;
     }
 
-    private function excerpt(string $text): string
+    private static function excerpt(string $text): string
     {
         $text = trim(preg_replace('/[\x00-\x1F\x7F]/', '?', $text) ?? '');
 

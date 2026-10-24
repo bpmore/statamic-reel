@@ -9,6 +9,38 @@ newer entry above it.
 
 ---
 
+## 2026-10-24: A cue that cannot be read is kept, and blocks a save
+
+The parser skipped a cue whose timing would not parse. The editor shows
+the parser's document, so the cue was not there to fix, and a save wrote
+the document, so the cue was deleted. Found by hand on greenhouse: the
+SRT comma on cue 4 of `campus-tour.vtt` could not be fixed, and the first
+save took the cue's text with it.
+
+Now the parser keeps such a cue as an `UnreadCue`: its timing line as
+written, its text, its line. The serializer writes it back byte for byte.
+It is not a `Cue`, because nothing that measures duration or overlap can
+measure it, but it is counted as one: findings carry the cue's number in
+the file (`Document::cueNumbers()`), so "Cue 5" is the fifth cue in the
+file and in the editor even with an unread cue before it. Its error is
+reported once, on the cue, not again as a file-level parse error. A block
+with no timing line is kept the same way.
+
+Saving is refused while any cue is unread, with a message naming it.
+
+Turned down: saving with the unread cue written back as it was. The file
+on disk would still be broken, and the store's read-back check (what is
+written must parse) would have to learn which errors to forgive. Refusing
+is one rule, and the person can fix or delete the cue in the same screen.
+Also turned down: refusing the save without showing the cue, which stops
+the loss but leaves the comma unfixable in Reel.
+
+Still open: a STYLE or REGION block after the first cue is skipped the
+same way, so a save deletes it. Players ignore such a block, which makes
+it less likely to matter, but it is still someone's text.
+
+---
+
 ## 2026-10-23: Layout the editor needs goes in a style attribute
 
 With no build step, a utility class in the editor only works if Statamic's

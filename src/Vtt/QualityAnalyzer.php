@@ -49,32 +49,37 @@ final class QualityAnalyzer
         $findings = [];
         $previous = null;
 
+        $numbers = $document->cueNumbers();
+
         foreach ($document->cues() as $i => $cue) {
-            $label = $cue->id !== null ? "Cue \"{$cue->id}\"" : 'Cue '.($i + 1);
+            // Numbered as in the file, so an unread cue before this one does
+            // not shift it out of step with the editor.
+            $n = $numbers[$i];
+            $label = $cue->id !== null ? "Cue \"{$cue->id}\"" : 'Cue '.($n + 1);
             $lines = $cue->lines();
             $longest = max(array_map('mb_strlen', $lines));
 
             if (count($lines) > $t->linesPerCue) {
-                $findings[] = Finding::warning('too-many-lines', "{$label} has ".count($lines)." lines. {$this->standard()} allows {$t->linesPerCue}.", $i, $cue->line, ['lines' => count($lines), 'limit' => $t->linesPerCue]);
+                $findings[] = Finding::warning('too-many-lines', "{$label} has ".count($lines)." lines. {$this->standard()} allows {$t->linesPerCue}.", $n, $cue->line, ['lines' => count($lines), 'limit' => $t->linesPerCue]);
             }
 
             if ($longest > $t->charactersPerLine) {
-                $findings[] = Finding::warning('line-length', "{$label} has a line of {$longest} characters. {$this->standard()} allows {$t->charactersPerLine}.", $i, $cue->line, ['characters' => $longest, 'limit' => $t->charactersPerLine]);
+                $findings[] = Finding::warning('line-length', "{$label} has a line of {$longest} characters. {$this->standard()} allows {$t->charactersPerLine}.", $n, $cue->line, ['characters' => $longest, 'limit' => $t->charactersPerLine]);
             }
 
             $duration = $cue->durationMs();
 
             if ($duration > 0 && $duration < $t->minimumDurationMs) {
-                $findings[] = Finding::warning('duration-short', "{$label} shows for {$this->seconds($duration)} s. {$this->standard()} asks for at least {$this->seconds($t->minimumDurationMs)} s.", $i, $cue->line, ['duration_ms' => $duration, 'limit_ms' => $t->minimumDurationMs]);
+                $findings[] = Finding::warning('duration-short', "{$label} shows for {$this->seconds($duration)} s. {$this->standard()} asks for at least {$this->seconds($t->minimumDurationMs)} s.", $n, $cue->line, ['duration_ms' => $duration, 'limit_ms' => $t->minimumDurationMs]);
             } elseif ($duration > $t->maximumDurationMs) {
-                $findings[] = Finding::warning('duration-long', "{$label} shows for {$this->seconds($duration)} s. {$this->standard()} allows at most {$this->seconds($t->maximumDurationMs)} s.", $i, $cue->line, ['duration_ms' => $duration, 'limit_ms' => $t->maximumDurationMs]);
+                $findings[] = Finding::warning('duration-long', "{$label} shows for {$this->seconds($duration)} s. {$this->standard()} allows at most {$this->seconds($t->maximumDurationMs)} s.", $n, $cue->line, ['duration_ms' => $duration, 'limit_ms' => $t->maximumDurationMs]);
             }
 
             if ($duration > 0) {
                 $cps = self::readingRate($cue);
 
                 if ($cps > $t->charactersPerSecond) {
-                    $findings[] = Finding::warning('reading-rate', "{$label} reads at {$cps} characters per second. {$this->standard()} allows {$t->charactersPerSecond}.", $i, $cue->line, ['cps' => $cps, 'limit' => $t->charactersPerSecond, 'characters' => self::characters($cue), 'duration_ms' => $duration]);
+                    $findings[] = Finding::warning('reading-rate', "{$label} reads at {$cps} characters per second. {$this->standard()} allows {$t->charactersPerSecond}.", $n, $cue->line, ['cps' => $cps, 'limit' => $t->charactersPerSecond, 'characters' => self::characters($cue), 'duration_ms' => $duration]);
                 }
             }
 
@@ -82,7 +87,7 @@ final class QualityAnalyzer
                 $gap = $cue->start->milliseconds - $previous->end->milliseconds;
 
                 if ($gap > $t->frameGapMs && $gap < $t->flickerGapMs) {
-                    $findings[] = Finding::warning('gap-flicker', "{$label} starts {$gap} ms after the cue before it ends, which flickers. Close the gap or open it to at least {$this->seconds($t->flickerGapMs)} s.", $i, $cue->line, ['gap_ms' => $gap, 'frame_gap_ms' => $t->frameGapMs, 'limit_ms' => $t->flickerGapMs]);
+                    $findings[] = Finding::warning('gap-flicker', "{$label} starts {$gap} ms after the cue before it ends, which flickers. Close the gap or open it to at least {$this->seconds($t->flickerGapMs)} s.", $n, $cue->line, ['gap_ms' => $gap, 'frame_gap_ms' => $t->frameGapMs, 'limit_ms' => $t->flickerGapMs]);
                 }
             }
 

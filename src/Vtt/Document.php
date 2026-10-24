@@ -16,7 +16,7 @@ final class Document
     /**
      * @param  string  $header  the text after `WEBVTT` on the first line
      * @param  array<int, string>  $preamble  the lines between the header and the first blank line
-     * @param  array<int, Cue|Note|Region|Style>  $blocks
+     * @param  array<int, Cue|UnreadCue|Note|Region|Style>  $blocks
      */
     public function __construct(
         public readonly string $header = '',
@@ -28,6 +28,51 @@ final class Document
     public function cues(): array
     {
         return array_values(array_filter($this->blocks, fn ($b) => $b instanceof Cue));
+    }
+
+    /**
+     * Each readable cue's number in the file, counting from zero and
+     * counting unread cues too: `cues()` index in, file position out. A
+     * finding is numbered this way, so "Cue 5" is the fifth cue in the file
+     * and in the editor even when an unread cue sits before it.
+     *
+     * @return array<int, int>
+     */
+    public function cueNumbers(): array
+    {
+        $numbers = [];
+        $n = 0;
+
+        foreach ($this->blocks as $block) {
+            if ($block instanceof Cue) {
+                $numbers[] = $n;
+            }
+
+            if ($block instanceof Cue || $block instanceof UnreadCue) {
+                $n++;
+            }
+        }
+
+        return $numbers;
+    }
+
+    /** @return array<int, UnreadCue> by their number in the file, as `cueNumbers()` counts */
+    public function unreadCues(): array
+    {
+        $unread = [];
+        $n = 0;
+
+        foreach ($this->blocks as $block) {
+            if ($block instanceof UnreadCue) {
+                $unread[$n] = $block;
+            }
+
+            if ($block instanceof Cue || $block instanceof UnreadCue) {
+                $n++;
+            }
+        }
+
+        return $unread;
     }
 
     /** @return array<string, Region> by id; a region with no id is unreachable and left out */
@@ -96,7 +141,8 @@ final class Document
 
         foreach ($this->blocks as $block) {
             $blocks[] = match (true) {
-                $block instanceof Cue => ['type' => 'cue'] + $block->toArray(),
+                // The editor shows an unread cue as a cue, so it can be fixed.
+                $block instanceof Cue, $block instanceof UnreadCue => ['type' => 'cue'] + $block->toArray(),
                 $block instanceof Note => ['type' => 'note', 'text' => $block->text, 'inline' => $block->inline],
                 $block instanceof Region => ['type' => 'region', 'settings' => $block->settings],
                 $block instanceof Style => ['type' => 'style', 'css' => $block->css],
@@ -120,7 +166,7 @@ final class Document
                 'note' => new Note((string) ($block['text'] ?? ''), (bool) ($block['inline'] ?? false)),
                 'region' => new Region(array_map('strval', (array) ($block['settings'] ?? []))),
                 'style' => new Style((string) ($block['css'] ?? '')),
-                default => Cue::fromArray($block),
+                default => self::cue($block),
             };
         }
 
@@ -129,5 +175,21 @@ final class Document
             array_values(array_map('strval', (array) ($data['preamble'] ?? []))),
             $blocks,
         );
+    }
+
+    /**
+     * A cue from the editor. One whose start or end is not a timestamp is
+     * kept as unread rather than refused, because it is either a file's
+     * broken cue on its way to being fixed or a timestamp half typed, and
+     * either way the rest of the document still has to be checked.
+     *
+     * @param  array<string, mixed>  $block
+     */
+    private static function cue(array $block): Cue|UnreadCue
+    {
+        $readable = Timestamp::parse((string) ($block['start'] ?? '')) !== null
+            && Timestamp::parse((string) ($block['end'] ?? '')) !== null;
+
+        return $readable ? Cue::fromArray($block) : UnreadCue::fromArray($block);
     }
 }
