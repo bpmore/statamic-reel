@@ -2,7 +2,7 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
-## Unreleased
+## 0.1.1, 2026-10-23
 
 - The media table on the Reel page fits a phone. Status is now the second
   column, next to the asset, and only the table scrolls sideways when the
