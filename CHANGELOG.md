@@ -2,7 +2,7 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
-## Unreleased
+## 0.1.4, 2026-10-24
 
 - A STYLE or REGION block after the first cue stays in the file. Players
   ignore such a block, and the parser used to skip it too, so the next
