@@ -35,6 +35,17 @@ it('prints clean JSON on stdout with --json and exits 1 when a video fails', fun
     expect($report['standard']['standard'])->toBe('netflix');
 });
 
+it('counts a cue whose timing cannot be read in the JSON report', function () {
+    mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.vtt', "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nOne\n\n00:00:03,000 --> 00:00:04.000\nTwo\n");
+
+    $output = new \Symfony\Component\Console\Output\BufferedOutput;
+    $this->app->make(\Illuminate\Contracts\Console\Kernel::class)->call('statamic:reel:audit', ['--json' => true], $output);
+    $report = json_decode($output->fetch(), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($report['assets'][0]['captions']['cues'])->toBe(2);
+});
+
 it('exits 0 when nothing reaches the threshold, and 1 when the threshold is lowered to include it', function () {
     mediaFile('clips/done.mp4');
     mediaFile('clips/done.vtt', captions('lecture-professional.vtt'));

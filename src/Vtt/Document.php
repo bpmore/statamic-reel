@@ -16,7 +16,7 @@ final class Document
     /**
      * @param  string  $header  the text after `WEBVTT` on the first line
      * @param  array<int, string>  $preamble  the lines between the header and the first blank line
-     * @param  array<int, Cue|UnreadCue|Note|Region|Style>  $blocks
+     * @param  array<int, Cue|UnreadCue|UnreadBlock|Note|Region|Style>  $blocks
      */
     public function __construct(
         public readonly string $header = '',
@@ -54,6 +54,18 @@ final class Document
         }
 
         return $numbers;
+    }
+
+    /** Every cue in the file, the ones whose timing cannot be read included: what the editor shows. */
+    public function cueCount(): int
+    {
+        return count(array_filter($this->blocks, fn ($b) => $b instanceof Cue || $b instanceof UnreadCue));
+    }
+
+    /** @return array<int, UnreadBlock> in file order */
+    public function unreadBlocks(): array
+    {
+        return array_values(array_filter($this->blocks, fn ($b) => $b instanceof UnreadBlock));
     }
 
     /** @return array<int, UnreadCue> by their number in the file, as `cueNumbers()` counts */
@@ -146,6 +158,8 @@ final class Document
                 $block instanceof Note => ['type' => 'note', 'text' => $block->text, 'inline' => $block->inline],
                 $block instanceof Region => ['type' => 'region', 'settings' => $block->settings],
                 $block instanceof Style => ['type' => 'style', 'css' => $block->css],
+                // Not a cue, so the editor leaves it alone and sends it back.
+                $block instanceof UnreadBlock => ['type' => 'unread'] + $block->toArray(),
             };
         }
 
@@ -166,6 +180,7 @@ final class Document
                 'note' => new Note((string) ($block['text'] ?? ''), (bool) ($block['inline'] ?? false)),
                 'region' => new Region(array_map('strval', (array) ($block['settings'] ?? []))),
                 'style' => new Style((string) ($block['css'] ?? '')),
+                'unread' => UnreadBlock::fromArray($block),
                 default => self::cue($block),
             };
         }

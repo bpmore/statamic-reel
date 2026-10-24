@@ -94,7 +94,7 @@ class Audit extends Command
                     'path' => $track->path(),
                     'how' => $track->how,
                     'language' => $track->language,
-                    'cues' => $inspection === null ? 0 : count($inspection->document->cues()),
+                    'cues' => $inspection === null ? 0 : $inspection->document->cueCount(),
                     'duration_ms' => $inspection?->document->durationMs() ?? 0,
                     'errors' => $inspection === null ? [] : array_map(fn ($f) => $f->toArray(), $inspection->errors),
                     'warnings' => $inspection === null ? [] : array_map(fn ($f) => $f->toArray(), $inspection->warnings),

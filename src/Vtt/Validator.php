@@ -22,10 +22,15 @@ final class Validator
     {
         $findings = [];
         $unread = $document->unreadCues();
-        $unreadLines = array_map(fn (UnreadCue $u) => $u->line, $unread);
+        $late = $document->unreadBlocks();
+        $unreadLines = array_merge(
+            array_map(fn (UnreadCue $u) => $u->line, $unread),
+            array_map(fn (UnreadBlock $b) => $b->line, $late),
+        );
 
-        // A parse error about a cue that was kept unread is reported on that
-        // cue below, so the editor can show it there and it is not counted
+        // A parse error about a block that was kept unread is reported from
+        // the block below, so a document from the editor, which has no parse
+        // errors to carry, still says what is wrong, and nothing is counted
         // twice.
         foreach ($parseErrors as $error) {
             if (! in_array($error->line, $unreadLines, true)) {
@@ -35,6 +40,10 @@ final class Validator
 
         foreach ($unread as $n => $cue) {
             $findings[] = Finding::error($cue->code(), $cue->problem(), $n, $cue->line > 0 ? $cue->line : null);
+        }
+
+        foreach ($late as $block) {
+            $findings[] = Finding::error(UnreadBlock::CODE, $block->problem(), null, $block->line > 0 ? $block->line : null);
         }
 
         $regions = $document->regions();

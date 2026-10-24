@@ -9,6 +9,32 @@ newer entry above it.
 
 ---
 
+## 2026-10-24: A late STYLE or REGION block is kept, and does not block a save
+
+The entry below left this open: a STYLE or REGION block after the first
+cue was skipped, so a save deleted it. Now the parser keeps it as an
+`UnreadBlock`, its lines as written, and the serializer writes it back in
+place. It is not a `Style` or a `Region`, because a player ignores it: a
+cue placed in a late region is placed in nothing, and `regions()` does not
+list it. The editor does not show it; the error, on the file, says where
+it is.
+
+Unlike an unread cue, it does not stop a save. The editor cannot move it,
+so refusing would make the file unsaveable from Reel. The store's
+read-back check allows exactly one kind of error back, this one, and only
+as many as the document carried.
+
+Turned down: moving the block above the cues on save, which would make
+players start honouring it and change what viewers see without anyone
+choosing that.
+
+The cue count (asset page, `reel:audit`, its JSON, the caption summary)
+now counts unread cues, so it matches the editor. It cannot turn a fail
+into a pass: an unread cue is always an error, and errors are checked
+before an empty track.
+
+---
+
 ## 2026-10-24: Focus never falls to the top of the page
 
 Checked without a screen reader, by reading the accessibility tree and

@@ -9,6 +9,7 @@ use Bpmore\Reel\Vtt\Region;
 use Bpmore\Reel\Vtt\Serializer;
 use Bpmore\Reel\Vtt\Style;
 use Bpmore\Reel\Vtt\Timestamp;
+use Bpmore\Reel\Vtt\UnreadBlock;
 use Bpmore\Reel\Vtt\UnreadCue;
 
 /*
@@ -220,6 +221,27 @@ it('records a STYLE block after the first cue as an error rather than swallowing
     expect($result->errors[0]->code)->toBe('block-out-of-place');
     expect($result->errors[0]->line)->toBe(6);
     expect($result->document->cues())->toHaveCount(1);
+});
+
+it('keeps a STYLE or REGION block after the first cue, in place, so writing the file back does not delete it', function () {
+    // Players ignore such a block, but it is someone's text, and skipping it
+    // meant the next save from the editor deleted it.
+    $vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHi\n\nSTYLE\n::cue { color: red }\n\nREGION\nid:late\nwidth:40%\n\n00:00:03.000 --> 00:00:04.000 region:late\nThere\n";
+    $result = (new Parser)->parse($vtt);
+
+    expect(array_map(fn ($e) => $e->code, $result->errors))->toBe(['block-out-of-place', 'block-out-of-place']);
+    expect($result->document->blocks[1])->toBeInstanceOf(UnreadBlock::class);
+    expect($result->document->blocks[2])->toBeInstanceOf(UnreadBlock::class);
+    // Not a region a cue can use: a player would not see it either.
+    expect($result->document->regions())->toBe([]);
+    expect((new Serializer)->serialize($result->document))->toBe($vtt);
+});
+
+it('counts a cue whose timing cannot be read as a cue, as the editor shows it', function () {
+    $result = (new Parser)->parse("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nOne\n\n00:00:03,000 --> 00:00:04.000\nTwo\n");
+
+    expect($result->document->cues())->toHaveCount(1);
+    expect($result->document->cueCount())->toBe(2);
 });
 
 it('treats a line containing an arrow inside a payload as the start of a new cue, as the spec does', function () {

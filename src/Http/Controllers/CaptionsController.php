@@ -10,6 +10,7 @@ use Bpmore\Reel\Settings;
 use Bpmore\Reel\Vtt\Document;
 use Bpmore\Reel\Vtt\Parser;
 use Bpmore\Reel\Vtt\Serializer;
+use Bpmore\Reel\Vtt\UnreadBlock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Statamic\Facades\User;
@@ -101,9 +102,13 @@ class CaptionsController extends CpController
 
         // Read back before writing: a document the serializer produced must
         // parse, and if it somehow does not, the file on disk is left alone.
+        // The one error allowed back is a late STYLE or REGION block the
+        // document carried, written back as it was: refusing it would make
+        // every file with one unsaveable, since the editor cannot move it.
         $check = (new Parser)->parse($vtt);
+        $unexpected = array_filter($check->errors, fn ($e) => $e->code !== UnreadBlock::CODE);
 
-        if (! $check->ok()) {
+        if ($unexpected !== [] || count($check->errors) !== count($document->unreadBlocks())) {
             return response()->json(['message' => 'The captions could not be written as a valid file.', 'errors' => array_map(fn ($e) => $e->toArray(), $check->errors)], 422);
         }
 

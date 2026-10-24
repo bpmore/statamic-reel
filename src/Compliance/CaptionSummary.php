@@ -30,7 +30,7 @@ final class CaptionSummary
             count($inspection->warnings),
             $inspection->machine->confidence,
             $inspection->machine->label,
-            count($inspection->document->cues()),
+            $inspection->document->cueCount(),
         );
     }
 
