@@ -2,6 +2,14 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- The media table on the Reel page fits a phone. Status is now the second
+  column, next to the asset, and only the table scrolls sideways when the
+  other columns do not fit. At 375 pixels wide it used to run past the
+  panel and push Status off the screen. The `reel:audit` example below it
+  scrolls in its own box for the same reason.
+
 ## 0.1.0, 2026-10-23
 
 The first release. Built 2026-09-15 against the brief in
