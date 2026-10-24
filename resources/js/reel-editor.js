@@ -107,7 +107,11 @@
                         <span v-if="cueFindings(n).length" class="font-normal text-sm">, {{ cueFindings(n).length }} {{ cueFindings(n).length === 1 ? 'finding' : 'findings' }}</span>
                     </legend>
 
-                    <div class="grid gap-3 md:grid-cols-4">
+                    <!-- Columns as an inline style, not a utility class. With no build step the editor can only use
+                         classes Statamic's own stylesheet happens to contain, and md:grid-cols-4 is not one of them, so the
+                         fields stacked in one column at every width. auto-fit also follows the panel's width, not the
+                         window's, and falls to one column on a phone. -->
+                    <div class="grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr))">
                         <ui-field label="Identifier" :id="fid(n, 'id')">
                             <ui-input :id="fid(n, 'id')" :model-value="cue(n).id || ''" @update:model-value="v => set(n, 'id', v)" :disabled="!canEdit" />
                         </ui-field>

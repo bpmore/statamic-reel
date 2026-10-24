@@ -21,8 +21,6 @@ and saying so in the changelog. Dated 2026-09-15.
    - Make `bpmore/statamic-reel` public. The README and composer.json
      already name GitHub Issues as the support channel, which is a dead
      link until then (Rule 09).
-   - Take screenshots on greenhouse: the Tools page, one asset's criteria
-     table, the editor with a finding. Real screens only (Rule 10).
    - Check the Tools page and editor at phone width (Rule 05). Keyboard is
      verified; small screens are not.
    - Tag `0.1.0`. The Marketplace reviews the tagged release (Rule 06).

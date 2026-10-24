@@ -9,6 +9,26 @@ newer entry above it.
 
 ---
 
+## 2026-10-23: Layout the editor needs goes in a style attribute
+
+With no build step, a utility class in the editor only works if Statamic's
+own stylesheet happens to contain it. `md:grid-cols-4` did not, so the four
+cue fields stacked in one column at every width, and nothing failed: it
+was found by reading the computed style while taking listing screenshots.
+The cue grid is now `repeat(auto-fit, minmax(14rem, 1fr))` in a `style`
+attribute: four columns on a laptop, two on a tablet, one on a phone with
+no sideways scroll, checked at 1440, 1024 and 375 pixels.
+
+Turned down: a responsive class Statamic does ship today (`md:grid-cols-2`
+is there), because Statamic's stylesheet is purged to its own markup and
+can drop it in any release; and an addon stylesheet, which is a second
+asset to publish for one rule.
+
+Still open: `md:grid-cols-[max-content_1fr]` on the "What Reel found" list
+in `resources/views/utilities/asset.blade.php` has the same problem.
+
+---
+
 ## 2026-09-15: The detector reads structure, because current recognisers punctuate
 
 The brief lists the classic tells of raw ASR: no punctuation, no capitals,
