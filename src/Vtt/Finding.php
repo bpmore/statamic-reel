@@ -19,7 +19,7 @@ final class Finding
     public const WARNING = 'warning';
 
     /**
-     * @param  int|null  $cue  the cue's index in `Document::cues()`, when the finding is about one
+     * @param  int|null  $cue  the cue's number in the file from zero, unread cues counted (`Document::cueNumbers()`), when the finding is about one
      * @param  int|null  $line  the line in the file, when known
      * @param  array<string, mixed>  $data  the numbers behind the message
      */

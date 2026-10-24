@@ -21,32 +21,45 @@ final class Validator
     public function validate(Document $document, array $parseErrors = []): array
     {
         $findings = [];
+        $unread = $document->unreadCues();
+        $unreadLines = array_map(fn (UnreadCue $u) => $u->line, $unread);
 
+        // A parse error about a cue that was kept unread is reported on that
+        // cue below, so the editor can show it there and it is not counted
+        // twice.
         foreach ($parseErrors as $error) {
-            $findings[] = Finding::error($error->code, $error->message, null, $error->line);
+            if (! in_array($error->line, $unreadLines, true)) {
+                $findings[] = Finding::error($error->code, $error->message, null, $error->line);
+            }
+        }
+
+        foreach ($unread as $n => $cue) {
+            $findings[] = Finding::error($cue->code(), $cue->problem(), $n, $cue->line > 0 ? $cue->line : null);
         }
 
         $regions = $document->regions();
         $cues = $document->cues();
+        $numbers = $document->cueNumbers();
         $maxEnd = PHP_INT_MIN;
 
         foreach ($cues as $i => $cue) {
-            $label = $this->label($cue, $i);
+            $n = $numbers[$i];
+            $label = $this->label($cue, $n);
 
             if ($cue->end->milliseconds < $cue->start->milliseconds) {
-                $findings[] = Finding::error('end-before-start', "{$label} ends before it starts ({$cue->start->format()} to {$cue->end->format()}).", $i, $cue->line);
+                $findings[] = Finding::error('end-before-start', "{$label} ends before it starts ({$cue->start->format()} to {$cue->end->format()}).", $n, $cue->line);
             } elseif ($cue->end->milliseconds === $cue->start->milliseconds) {
-                $findings[] = Finding::error('zero-duration', "{$label} starts and ends at {$cue->start->format()}, so it never shows.", $i, $cue->line);
+                $findings[] = Finding::error('zero-duration', "{$label} starts and ends at {$cue->start->format()}, so it never shows.", $n, $cue->line);
             }
 
             if ($i > 0 && $cue->start->milliseconds < $cues[$i - 1]->start->milliseconds) {
-                $findings[] = Finding::error('cues-out-of-order', "{$label} starts at {$cue->start->format()}, before the cue above it. Cues must be in time order.", $i, $cue->line);
+                $findings[] = Finding::error('cues-out-of-order', "{$label} starts at {$cue->start->format()}, before the cue above it. Cues must be in time order.", $n, $cue->line);
             }
 
             $region = $cue->region();
 
             if ($region !== null && ! isset($regions[$region])) {
-                $findings[] = Finding::error('region-undefined', "{$label} is placed in region \"{$region}\", which the file does not define.", $i, $cue->line, ['region' => $region]);
+                $findings[] = Finding::error('region-undefined', "{$label} is placed in region \"{$region}\", which the file does not define.", $n, $cue->line, ['region' => $region]);
             }
 
             // Only cues that could overlap are compared, which for a file in
@@ -61,10 +74,10 @@ final class Validator
 
                     $findings[] = Finding::error(
                         'cues-overlap',
-                        "{$label} ({$cue->start->format()} to {$cue->end->format()}) overlaps ".lcfirst($this->label($other, $j))." ({$other->start->format()} to {$other->end->format()}). Two cues can only show at once inside a region with room to stack.",
-                        $i,
+                        "{$label} ({$cue->start->format()} to {$cue->end->format()}) overlaps ".lcfirst($this->label($other, $numbers[$j]))." ({$other->start->format()} to {$other->end->format()}). Two cues can only show at once inside a region with room to stack.",
+                        $n,
                         $cue->line,
-                        ['with' => $j],
+                        ['with' => $numbers[$j]],
                     );
                 }
             }
@@ -96,8 +109,9 @@ final class Validator
         return $ra !== $rb || $regions[$ra]->allowsStacking();
     }
 
-    private function label(Cue $cue, int $index): string
+    /** @param  int  $number  the cue's number in the file, from `Document::cueNumbers()` */
+    private function label(Cue $cue, int $number): string
     {
-        return $cue->id !== null ? "Cue \"{$cue->id}\"" : 'Cue '.($index + 1);
+        return $cue->id !== null ? "Cue \"{$cue->id}\"" : 'Cue '.($number + 1);
     }
 }

@@ -29,8 +29,13 @@ final class Serializer
         return $out;
     }
 
-    private function block(Cue|Note|Region|Style $block): string
+    private function block(Cue|UnreadCue|Note|Region|Style $block): string
     {
+        // Written exactly as it was read, until a person fixes the timing.
+        if ($block instanceof UnreadCue) {
+            return implode("\n", array_filter([$block->id, $block->timing, $block->text], fn ($part) => $part !== null && $part !== ''));
+        }
+
         if ($block instanceof Cue) {
             $lines = [];
 

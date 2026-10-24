@@ -85,6 +85,18 @@ class CaptionsController extends CpController
             return $document;
         }
 
+        // A cue whose timing cannot be read has no right answer to write: a
+        // save used to drop it, text and all. The editor shows it with its
+        // error, so the person fixes it or deletes it on purpose.
+        $unread = array_keys($document->unreadCues());
+
+        if ($unread !== []) {
+            $names = array_map(fn (int $n) => (string) ($n + 1), $unread);
+            $list = count($names) === 1 ? 'Cue '.$names[0].' has' : 'Cues '.implode(', ', array_slice($names, 0, -1)).' and '.end($names).' have';
+
+            return response()->json(['message' => $list.' timing that cannot be read. Fix it, or delete the cue, then save.'], 422);
+        }
+
         $vtt = (new Serializer)->serialize($document);
 
         // Read back before writing: a document the serializer produced must

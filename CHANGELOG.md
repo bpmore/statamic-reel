@@ -2,6 +2,19 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- A cue whose timing cannot be read stays in the file. It used to be
+  skipped, so the editor never showed it and the next save deleted it,
+  text and all: an SRT comma on one timestamp was enough. It now shows in
+  the editor as a cue, with its error on it, and is written back exactly
+  as it was until someone fixes it. A block with no timing line at all is
+  kept the same way.
+- The editor refuses to save while a cue's timing cannot be read, and says
+  which cue. Fix it or delete it, then save.
+- Checking a cue while a timestamp is half typed no longer stops with "Could
+  not check": the cue carries the error and the rest of the file is checked.
+
 ## 0.1.1, 2026-10-23
 
 - The media table on the Reel page fits a phone. Status is now the second
