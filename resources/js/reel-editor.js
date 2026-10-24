@@ -64,9 +64,9 @@
         </p>
 
         <div class="flex flex-wrap items-center gap-2">
-            <ui-button v-if="canEdit" variant="primary" :disabled="!state.dirty || state.saving" :text="state.saving ? 'Saving' : 'Save captions'" @click="save" />
+            <ui-button v-if="canEdit" variant="primary" :text="state.saving ? 'Saving' : 'Save captions'" @click="save" />
             <ui-button size="sm" :disabled="findings.length === 0" text="Next finding" @click="nextFinding" />
-            <ui-button size="sm" variant="ghost" :disabled="!state.dirty" text="Discard changes" @click="reload" />
+            <ui-button size="sm" variant="ghost" text="Discard changes" @click="reload" />
             <ui-badge :color="errorCount ? 'red' : 'green'" :text="errorCount + (errorCount === 1 ? ' error' : ' errors')" />
             <ui-badge :color="warningCount ? 'amber' : 'default'" :text="warningCount + (warningCount === 1 ? ' finding' : ' findings')" />
             <ui-badge :color="machineColor" :text="'Machine captions: ' + machine.label + ' (' + Math.round(machine.confidence * 100) + '%)'" />
@@ -116,14 +116,14 @@
                             <ui-input :id="fid(n, 'id')" :model-value="cue(n).id || ''" @update:model-value="v => set(n, 'id', v)" :disabled="!canEdit" />
                         </ui-field>
                         <ui-field label="Start" :id="fid(n, 'start')" :instructions-below="true">
-                            <ui-input :id="fid(n, 'start')" :model-value="cue(n).start" @update:model-value="v => set(n, 'start', v)" :disabled="!canEdit" placeholder="00:00:00.000" />
+                            <ui-input :id="fid(n, 'start')" :model-value="cue(n).start" @update:model-value="v => set(n, 'start', v)" :disabled="!canEdit" placeholder="00:00:00.000" :aria-describedby="cueFindings(n).length ? fid(n, 'findings') : null" />
                             <div class="mt-1 flex gap-1">
                                 <ui-button size="xs" variant="ghost" text="-100 ms" :aria-label="'Start of cue ' + (n + 1) + ' earlier by 100 milliseconds'" :disabled="!canEdit" @click="nudge(n, 'start', -100)" />
                                 <ui-button size="xs" variant="ghost" text="+100 ms" :aria-label="'Start of cue ' + (n + 1) + ' later by 100 milliseconds'" :disabled="!canEdit" @click="nudge(n, 'start', 100)" />
                             </div>
                         </ui-field>
                         <ui-field label="End" :id="fid(n, 'end')">
-                            <ui-input :id="fid(n, 'end')" :model-value="cue(n).end" @update:model-value="v => set(n, 'end', v)" :disabled="!canEdit" placeholder="00:00:00.000" />
+                            <ui-input :id="fid(n, 'end')" :model-value="cue(n).end" @update:model-value="v => set(n, 'end', v)" :disabled="!canEdit" placeholder="00:00:00.000" :aria-describedby="cueFindings(n).length ? fid(n, 'findings') : null" />
                             <div class="mt-1 flex gap-1">
                                 <ui-button size="xs" variant="ghost" text="-100 ms" :aria-label="'End of cue ' + (n + 1) + ' earlier by 100 milliseconds'" :disabled="!canEdit" @click="nudge(n, 'end', -100)" />
                                 <ui-button size="xs" variant="ghost" text="+100 ms" :aria-label="'End of cue ' + (n + 1) + ' later by 100 milliseconds'" :disabled="!canEdit" @click="nudge(n, 'end', 100)" />
@@ -147,10 +147,10 @@
                     <div v-if="canEdit" class="flex flex-wrap gap-2">
                         <ui-button size="sm" variant="ghost" text="Insert cue after" :aria-label="'Insert a cue after cue ' + (n + 1)" @click="insertAfter(n)" />
                         <template v-if="state.deleting === n">
-                            <ui-button size="sm" variant="danger" :text="'Confirm: delete cue ' + (n + 1)" @click="remove(n)" />
-                            <ui-button size="sm" variant="ghost" text="Keep it" @click="state.deleting = null" />
+                            <ui-button :id="fid(n, 'confirm-delete')" size="sm" variant="danger" :text="'Confirm: delete cue ' + (n + 1)" @click="remove(n)" />
+                            <ui-button :id="fid(n, 'keep')" size="sm" variant="ghost" text="Keep it" :aria-label="'Keep cue ' + (n + 1)" @click="keep(n)" />
                         </template>
-                        <ui-button v-else size="sm" variant="ghost" text="Delete cue" :aria-label="'Delete cue ' + (n + 1)" @click="state.deleting = n" />
+                        <ui-button v-else :id="fid(n, 'delete')" size="sm" variant="ghost" text="Delete cue" :aria-label="'Delete cue ' + (n + 1)" @click="askDelete(n)" />
                     </div>
                 </fieldset>
             </li>
@@ -208,8 +208,13 @@
 
             const cueFindings = n => findings.value.filter(f => f.cue === n);
 
-            async function load() {
-                state.loading = true;
+            // Save and Discard are never disabled, and Discard reloads without
+            // the loading message: a focused button that turns disabled or is
+            // replaced sends focus to the top of the page, so every save left a
+            // screen reader user at the top with nothing said. They stay where
+            // they are and the status line says what happened instead.
+            async function load(quietly = false) {
+                state.loading = !quietly;
                 state.failed = null;
 
                 try {
@@ -228,7 +233,12 @@
             }
 
             async function reload() {
-                await load();
+                if (!state.dirty) {
+                    state.status = 'Nothing to discard: there are no changes since the file was saved.';
+                    return;
+                }
+                clearTimeout(timer);
+                await load(true);
                 state.status = 'Changes discarded. The file is as it was saved.';
             }
 
@@ -287,6 +297,29 @@
                 Vue.nextTick(() => focusField(n + 1, 'text'));
             }
 
+            // The two delete buttons replace the one that was pressed, so the
+            // focused button leaves the page and focus fell to the top of it:
+            // a screen reader said nothing and the next Tab started over. Focus
+            // goes to the button that took its place, both ways.
+            function focusButton(id) {
+                Vue.nextTick(() => {
+                    const el = document.getElementById(id);
+                    if (el) el.focus();
+                });
+            }
+
+            function askDelete(n) {
+                state.deleting = n;
+                state.status = 'Delete cue ' + (n + 1) + '? Confirm to delete it, or keep it.';
+                focusButton(fid(n, 'confirm-delete'));
+            }
+
+            function keep(n) {
+                state.deleting = null;
+                state.status = 'Cue ' + (n + 1) + ' kept.';
+                focusButton(fid(n, 'delete'));
+            }
+
             function remove(n) {
                 state.doc.blocks.splice(blockIndex(n), 1);
                 state.deleting = null;
@@ -313,6 +346,11 @@
             }
 
             async function save() {
+                if (state.saving) return;
+                if (!state.dirty) {
+                    state.status = 'Nothing to save: there are no changes since the file was saved.';
+                    return;
+                }
                 state.saving = true;
                 state.status = 'Saving';
 
@@ -333,7 +371,7 @@
             return {
                 state, cueIndexes, pageCount, pageCueNumbers, blockIndex, cue, fid,
                 findings, fileFindings, errorCount, warningCount, machine, machineColor, cueFindings,
-                set, settingsText, setSettings, nudge, insertAfter, remove, nextFinding, save, reload,
+                set, settingsText, setSettings, nudge, insertAfter, askDelete, keep, remove, nextFinding, save, reload,
             };
         },
     });

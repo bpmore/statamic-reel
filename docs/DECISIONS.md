@@ -9,6 +9,31 @@ newer entry above it.
 
 ---
 
+## 2026-10-24: Focus never falls to the top of the page
+
+Checked without a screen reader, by reading the accessibility tree and
+following focus after each keyboard action on greenhouse. Three actions
+sent focus to the page body with nothing announced: "Delete cue" and
+"Keep it" (each replaces the button that was pressed), and Save and
+Discard (each turned disabled, and a focused button that turns disabled
+loses focus; Discard also re-rendered the whole editor through its
+loading message).
+
+Now the delete pair moves focus to the button that took its place, Save
+and Discard are never disabled and say "Nothing to save" or "Nothing to
+discard" when there is nothing to do, and Discard reloads without the
+loading message so the button stays in place.
+
+Turned down: `aria-disabled` on Save and Discard, which keeps focus but
+needs Statamic's button to style it, and it does not; and moving focus to
+the status line after a save, which takes the person away from where they
+were working.
+
+Not checked: a real VoiceOver session, and an automated scan (axe could
+not be loaded in the browser used). Both are still worth doing.
+
+---
+
 ## 2026-10-24: A cue that cannot be read is kept, and blocks a save
 
 The parser skipped a cue whose timing would not parse. The editor shows

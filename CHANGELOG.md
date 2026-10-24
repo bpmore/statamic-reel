@@ -2,6 +2,18 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- The caption editor keeps your place for a screen reader. "Delete cue"
+  moves focus to "Confirm: delete cue N", and "Keep it" moves it back;
+  both used to drop focus to the top of the page with nothing said.
+- Save and Discard stay where you are. They are no longer disabled when
+  there is nothing to do (the status line says so instead), because a
+  focused button that turns disabled sends focus to the top of the page,
+  which happened on every save.
+- A cue's findings are read from its Start and End fields too, not only
+  from its text, so a timing error is heard where it is fixed.
+
 ## 0.1.2, 2026-10-24
 
 - A cue whose timing cannot be read stays in the file. It used to be
