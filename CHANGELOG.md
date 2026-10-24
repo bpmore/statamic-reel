@@ -2,7 +2,7 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
-## Unreleased
+## 0.1.3, 2026-10-24
 
 - The caption editor keeps your place for a screen reader. "Delete cue"
   moves focus to "Confirm: delete cue N", and "Keep it" moves it back;
