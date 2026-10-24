@@ -2,7 +2,7 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
-## Unreleased
+## 0.1.2, 2026-10-24
 
 - A cue whose timing cannot be read stays in the file. It used to be
   skipped, so the editor never showed it and the next save deleted it,
