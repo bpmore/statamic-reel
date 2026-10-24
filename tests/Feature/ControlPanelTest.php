@@ -138,6 +138,30 @@ it('writes the edited captions back to the asset, through the serializer', funct
     expect($written)->toBe(str_replace('Welcome back to the clinic.', 'Welcome back to the clinic, again.', captions('complex.vtt')));
 });
 
+it('saves a file with a STYLE block after the first cue and keeps the block where it was', function () {
+    $vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHi\n\nSTYLE\n::cue { color: red }\n\n00:00:03.000 --> 00:00:04.000\nThere\n";
+    mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.vtt', $vtt);
+
+    $json = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json();
+    $document = $json['document'];
+    expect($json['inspection']['errors'][0]['code'])->toBe('block-out-of-place');
+
+    $document['blocks'][2]['text'] = 'There, again';
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])->assertOk();
+
+    expect(Storage::disk('media')->get('clips/talk.vtt'))->toBe(str_replace("There\n", "There, again\n", $vtt));
+});
+
+it('counts every cue on the asset page, including one whose timing cannot be read', function () {
+    mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.vtt', "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nOne\n\n00:00:03,000 --> 00:00:04.000\nTwo\n");
+
+    $html = utilityHtml(cp_route('utilities.reel.asset', ['id' => 'media::clips/talk.mp4']));
+
+    expect($html)->toContain('2 cues,');
+});
+
 it('refuses to write for a user without the permission, and still lets them read', function () {
     mediaFile('clips/talk.mp4');
     mediaFile('clips/talk.vtt', captions('complex.vtt'));

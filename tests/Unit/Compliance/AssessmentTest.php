@@ -101,3 +101,10 @@ it('lists all five criteria with names and levels in its array form', function (
     expect($array['criteria'][3]['level'])->toBe('AA');
     expect($array['criteria'][1]['name'])->toBe('Captions (Prerecorded)');
 });
+
+it('counts a cue whose timing cannot be read in the caption summary', function () {
+    $inspection = (new \Bpmore\Reel\Vtt\Inspector(\Bpmore\Reel\Vtt\QualityThresholds::preset('netflix')))
+        ->inspect("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nOne\n\n00:00:03,000 --> 00:00:04.000\nTwo\n");
+
+    expect(CaptionSummary::fromInspection('media/talk.vtt', $inspection)->cues)->toBe(2);
+});

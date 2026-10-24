@@ -93,6 +93,19 @@ it('reports an unreadable cue once, on that cue, and numbers the cues after it t
     expect(codes((new Validator)->validate($parsed->document)))->toBe(['malformed-timestamp', 'zero-duration']);
 });
 
+it('reports a STYLE block after the first cue once, whether or not the parse errors are passed in', function () {
+    $parsed = (new Parser)->parse("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHi\n\nSTYLE\n::cue { color: red }\n");
+
+    $withErrors = (new Validator)->validate($parsed->document, $parsed->errors);
+    expect(codes($withErrors))->toBe(['block-out-of-place']);
+    expect($withErrors[0]->line)->toBe(6);
+    expect($withErrors[0]->cue)->toBeNull();
+
+    // From the editor there are no parse errors to carry; the block still
+    // says what is wrong with it.
+    expect(codes((new Validator)->validate($parsed->document)))->toBe(['block-out-of-place']);
+});
+
 it('passes the professional fixture and the complex fixture clean', function () {
     expect(validate(captions('lecture-professional.vtt')))->toBe([]);
     expect(validate(captions('complex.vtt')))->toBe([]);

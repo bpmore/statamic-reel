@@ -11,8 +11,9 @@ namespace Bpmore\Reel\Vtt;
  * is a run of non-blank lines, and the first line says what it is. What
  * cannot be read is recorded with its line number and reading continues,
  * because an editor has to open the file to fix it. A cue whose timing
- * cannot be read is kept as an `UnreadCue`, not skipped: skipping it meant
- * the next save deleted it.
+ * cannot be read is kept as an `UnreadCue`, and a STYLE or REGION block
+ * after the first cue as an `UnreadBlock`, not skipped: skipping them meant
+ * the next save deleted them.
  */
 final class Parser
 {
@@ -100,7 +101,9 @@ final class Parser
 
             if (preg_match('/^STYLE[ \t]*$/', $first)) {
                 if ($seenCue) {
-                    $errors[] = new ParseError($startLine, 'block-out-of-place', 'A STYLE block after the first cue is ignored by players. Move it above the cues.');
+                    $late = new UnreadBlock('STYLE', implode("\n", $block), $startLine);
+                    $errors[] = new ParseError($startLine, UnreadBlock::CODE, $late->problem());
+                    $blocks[] = $late;
 
                     continue;
                 }
@@ -112,7 +115,9 @@ final class Parser
 
             if (preg_match('/^REGION[ \t]*$/', $first)) {
                 if ($seenCue) {
-                    $errors[] = new ParseError($startLine, 'block-out-of-place', 'A REGION block after the first cue is ignored by players. Move it above the cues.');
+                    $late = new UnreadBlock('REGION', implode("\n", $block), $startLine);
+                    $errors[] = new ParseError($startLine, UnreadBlock::CODE, $late->problem());
+                    $blocks[] = $late;
 
                     continue;
                 }

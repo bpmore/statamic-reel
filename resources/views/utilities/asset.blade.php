@@ -52,7 +52,7 @@
                 @if ($track !== null)
                     @plain($track->path()), @plain($track->how === 'chosen' ? 'chosen on the asset' : 'found beside the video by name'), language @plain($track->language)
                     @if ($inspection !== null)
-                        <div class="text-sm text-gray-600 dark:text-gray-400">{{ count($inspection->document->cues()) }} cues, {{ round($inspection->document->durationMs() / 1000) }} seconds, {{ count($inspection->errors) }} {{ count($inspection->errors) === 1 ? 'error' : 'errors' }}, {{ count($inspection->warnings) }} quality {{ count($inspection->warnings) === 1 ? 'finding' : 'findings' }} against the @plain($standard->name()) standard.</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">{{ $inspection->document->cueCount() }} cues, {{ round($inspection->document->durationMs() / 1000) }} seconds, {{ count($inspection->errors) }} {{ count($inspection->errors) === 1 ? 'error' : 'errors' }}, {{ count($inspection->warnings) }} quality {{ count($inspection->warnings) === 1 ? 'finding' : 'findings' }} against the @plain($standard->name()) standard.</div>
                     @endif
                 @elseif ($media->chosenTrackIsMissing())
                     <span class="text-red-600">The file chosen on the asset no longer exists.</span> Choose another in the asset's fields, or clear the choice to use a file beside the video.

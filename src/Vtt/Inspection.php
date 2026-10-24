@@ -38,7 +38,7 @@ final class Inspection
     {
         return [
             'ok' => $this->ok(),
-            'cues' => count($this->document->cues()),
+            'cues' => $this->document->cueCount(),
             'duration_ms' => $this->document->durationMs(),
             'errors' => array_map(fn (Finding $f) => $f->toArray(), $this->errors),
             'warnings' => array_map(fn (Finding $f) => $f->toArray(), $this->warnings),

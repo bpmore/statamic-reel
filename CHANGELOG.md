@@ -2,6 +2,16 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- A STYLE or REGION block after the first cue stays in the file. Players
+  ignore such a block, and the parser used to skip it too, so the next
+  save from the editor deleted it. It is now kept where it was, written
+  back exactly, and still reported as an error so someone can move it.
+  Saving no longer fails on a file that has one.
+- The cue count on the asset page, in `reel:audit` and in its JSON counts
+  a cue whose timing cannot be read, so it matches the editor.
+
 ## 0.1.3, 2026-10-24
 
 - The caption editor keeps your place for a screen reader. "Delete cue"
