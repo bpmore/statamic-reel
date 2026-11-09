@@ -135,7 +135,11 @@ input in document order, nothing is hover-only, and nothing moves. Saving
 writes the WebVTT file back into the asset container through the same
 serializer the parser round-trips through, so notes, regions and styles you
 never touched are written back as they were. Saving needs the **Edit
-caption files** permission.
+caption files** permission, and Statamic's own **edit assets** permission
+for the container the caption file is in. Only a `.vtt` file is ever
+treated as a track, or written; a chosen file of any other kind is shown
+as missing. Seeing an asset's page, or its captions, needs the **view
+assets** permission for the asset's container.
 
 ## Tags
 

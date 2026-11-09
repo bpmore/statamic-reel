@@ -166,11 +166,8 @@ it('refuses to write for a user without the permission, and still lets them read
     mediaFile('clips/talk.mp4');
     mediaFile('clips/talk.vtt', captions('complex.vtt'));
 
-    config()->set('statamic.editions.pro', true);
-    Role::make('viewer')->permissions(['access cp', 'access reel utility'])->save();
-    $viewer = User::make()->id('viewer')->email('viewer@example.test')->assignRole('viewer');
-    $viewer->save();
-    $this->actingAs($viewer);
+    // May see the container, which reading the captions needs, and no more.
+    $this->actingAs(userWith(['access cp', 'access reel utility', 'view media assets'], 'viewer'));
 
     $document = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json();
     expect($document['can_edit'])->toBeFalse();
@@ -188,6 +185,89 @@ it('grants the write through its own permission and nothing else', function () {
 
     expect($captioner->can(ServiceProvider::EDIT_PERMISSION))->toBeTrue();
     expect($captioner->can('configure asset containers'))->toBeFalse();
+});
+
+it('treats a chosen track that is not a WebVTT file as missing, and will not write to it', function () {
+    // The field is a plain asset reference, so a request can set it to any
+    // file in the container. A save must not land in that file.
+    $video = mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.vtt', captions('complex.vtt'));
+    mediaFile('clips/app.js', 'console.log("hello")');
+    $video->set('reel_captions', 'clips/app.js')->save();
+
+    $json = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json();
+    expect($json['track'])->toBeNull();
+
+    $html = utilityHtml(cp_route('utilities.reel.asset', ['id' => 'media::clips/talk.mp4']));
+    expect($html)->toContain('The file chosen on the asset is missing');
+    expect($html)->not->toContain('<reel-editor');
+
+    $document = ['header' => '', 'preamble' => [], 'blocks' => [['type' => 'cue', 'id' => null, 'start' => '00:00:01.000', 'end' => '00:00:02.000', 'settings' => '', 'text' => 'Hi']]];
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])->assertNotFound();
+
+    expect(Storage::disk('media')->get('clips/app.js'))->toBe('console.log("hello")');
+    expect(Storage::disk('media')->get('clips/talk.vtt'))->toBe(captions('complex.vtt'));
+});
+
+it('refuses to write a sidecar that is not a WebVTT file, whatever the pattern matched', function () {
+    // The sidecar patterns are config, so an admin can write one that
+    // matches more than `.vtt`. The save checks the file, not the pattern.
+    reelSettings(['captions.sidecars' => ['{name}.*']]);
+    mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.txt', 'notes about the talk');
+
+    $json = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json();
+    expect($json['track']['path'])->toBe('clips/talk.txt');
+    expect($json['can_edit'])->toBeFalse();
+
+    $document = ['header' => '', 'preamble' => [], 'blocks' => [['type' => 'cue', 'id' => null, 'start' => '00:00:01.000', 'end' => '00:00:02.000', 'settings' => '', 'text' => 'Hi']]];
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])->assertForbidden();
+
+    expect(Storage::disk('media')->get('clips/talk.txt'))->toBe('notes about the talk');
+});
+
+it('needs the edit permission on the track\'s own container, not only the Reel permission', function () {
+    mediaContainer('subs');
+    $video = mediaFile('clips/talk.mp4');
+    mediaFile('talk.vtt', captions('complex.vtt'), 'subs');
+    $video->set('reel_captions', 'subs::talk.vtt')->save();
+
+    $document = ['header' => '', 'preamble' => [], 'blocks' => [['type' => 'cue', 'id' => null, 'start' => '00:00:01.000', 'end' => '00:00:02.000', 'settings' => '', 'text' => 'Hi']]];
+
+    // May edit the video's container, and read the track's, but not edit it.
+    $this->actingAs(userWith(['access cp', 'access reel utility', ServiceProvider::EDIT_PERMISSION, 'view media assets', 'edit media assets', 'view subs assets'], 'captioner'));
+
+    $json = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json();
+    expect($json['track']['path'])->toBe('talk.vtt');
+    expect($json['can_edit'])->toBeFalse();
+    expect(utilityHtml(cp_route('utilities.reel.asset', ['id' => 'media::clips/talk.mp4'])))->toContain(':can-edit="false"');
+
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])->assertForbidden();
+    expect(Storage::disk('subs')->get('talk.vtt'))->toBe(captions('complex.vtt'));
+
+    // With the track's container editable, the same save goes through.
+    $this->actingAs(userWith(['access cp', 'access reel utility', ServiceProvider::EDIT_PERMISSION, 'view media assets', 'view subs assets', 'edit subs assets'], 'subtitler'));
+
+    expect($this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->json('can_edit'))->toBeTrue();
+    $this->postJson(cp_route('utilities.reel.captions.store', ['id' => 'media::clips/talk.mp4']), ['document' => $document])->assertOk();
+    expect(Storage::disk('subs')->get('talk.vtt'))->toBe("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHi\n");
+});
+
+it('shows an asset, and its captions, only to a user who may view its container', function () {
+    mediaContainer('private');
+    mediaFile('clips/talk.mp4');
+    mediaFile('clips/talk.vtt', captions('complex.vtt'));
+    mediaFile('board/meeting.mp4', 'not really a media file', 'private');
+    mediaFile('board/meeting.vtt', "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nThe figures for the quarter\n", 'private');
+
+    $this->actingAs(userWith(['access cp', 'access reel utility', 'view media assets'], 'viewer'));
+
+    $this->get(cp_route('utilities.reel.asset', ['id' => 'media::clips/talk.mp4']))->assertOk();
+    $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'media::clips/talk.mp4']))->assertOk()->assertJsonPath('track.path', 'clips/talk.vtt');
+
+    $this->get(cp_route('utilities.reel.asset', ['id' => 'private::board/meeting.mp4']))->assertForbidden();
+    $response = $this->getJson(cp_route('utilities.reel.captions.show', ['id' => 'private::board/meeting.mp4']))->assertForbidden();
+    expect($response->getContent())->not->toContain('figures for the quarter');
 });
 
 /**

@@ -37,6 +37,10 @@ class CaptionsController extends CpController
 
         abort_if($media === null, 404);
 
+        // The id names any container. Reading the captions is reading the
+        // asset, so it is Statamic's own view permission for that container.
+        abort_unless((bool) User::current()?->can('view', $media->asset), 403);
+
         $track = $media->captionTrack();
 
         if ($track === null) {
@@ -49,7 +53,7 @@ class CaptionsController extends CpController
             'track' => ['path' => $track->path(), 'how' => $track->how, 'language' => $track->language, 'id' => $track->asset->id()],
             'document' => $inspection?->document->toArray(),
             'inspection' => $inspection?->toArray(),
-            'can_edit' => (bool) User::current()?->can(ServiceProvider::EDIT_PERMISSION),
+            'can_edit' => (bool) User::current()?->can(ServiceProvider::EDIT_PERMISSION) && $track->editableBy(User::current()),
         ]);
     }
 
@@ -79,6 +83,13 @@ class CaptionsController extends CpController
         $track = $media->captionTrack();
 
         abort_if($track === null, 404, 'This asset has no caption track to save.');
+
+        // The track is whatever the asset's field or a sidecar pattern
+        // names, and the field is set by a request. The write goes to a
+        // WebVTT file this person may edit under Statamic's own asset
+        // permission, and nowhere else, so pointing the field at another
+        // file cannot turn a caption save into an overwrite of it.
+        abort_unless($track->editableBy(User::current()), 403, 'You do not have permission to write this caption file.');
 
         $document = $this->document($request);
 

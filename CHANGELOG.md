@@ -2,6 +2,22 @@
 
 Newest first. Before 1.0, a breaking change raises the minor version.
 
+## Unreleased
+
+- The editor's save writes only to a `.vtt` file, and only one the person
+  may edit under Statamic's own `edit <container> assets` permission, on
+  top of Reel's. The `reel_captions` field is a plain asset reference, so
+  a request could point it at any file in the container (a script, an
+  image) and the next save would overwrite that file with captions. A
+  chosen track that is not WebVTT is now reported as missing, like one
+  that is gone. A role that saves captions needs edit permission on the
+  container the caption file is in; before, the Reel permission alone was
+  enough.
+- An asset's Reel page, and the editor's load of its captions, now need
+  Statamic's `view <container> assets` permission for the asset's
+  container. They used to answer for any media asset on the site to anyone
+  with access to the utility.
+
 ## 0.1.4, 2026-10-24
 
 - A STYLE or REGION block after the first cue stays in the file. Players
