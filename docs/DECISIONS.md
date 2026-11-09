@@ -9,6 +9,41 @@ newer entry above it.
 
 ---
 
+## 2026-11-09: The save is bounded by the file, and by Statamic's asset permissions
+
+The write path took the track from `reel_captions` as given. The field is
+an assets field, so a request to the asset's own edit form can set it to
+any file in the container, and `resolve()` returned whatever it named.
+Saving then wrote WebVTT over that file. With a `.js` or `.svg` as the
+target, that is a stored script in the container's public URL, from a
+person who holds only the Reel permission.
+
+Now two rules. `resolve()` only returns a `.vtt` file; anything else is
+"missing", the same as a deleted file, and the page says so. And the save
+needs `edit <container> assets` on the track's own container, through
+Statamic's `AssetPolicy`, as well as Reel's `edit reel captions`. The
+check is on the track's container, not the video's, because a chosen
+track may live in another container by its `container::path` id.
+`can_edit` and `:can-edit` follow the same rule, so the editor is read
+only when a save would be refused.
+
+Also: the asset page and the editor's load answered for any media asset to
+anyone with `access reel utility`. Both now need `view <container> assets`.
+The listing on the Reel page still names every media asset on the site
+(path, status, no captions), which is what the utility is for.
+
+Turned down: a second Reel permission per container, which would copy
+what Statamic's asset permissions already say; checking that the track
+is in the video's container, which forbids a legitimate shared
+`captions` container; and checking the file's contents instead of its
+extension, which lets a parseable `.js` through, since WebVTT is text.
+
+Cost: a role that saves captions now needs edit permission on the
+container the caption files are in. Before, the Reel permission alone was
+enough. The changelog says so.
+
+---
+
 ## 2026-10-24: A late STYLE or REGION block is kept, and does not block a save
 
 The entry below left this open: a STYLE or REGION block after the first

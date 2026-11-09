@@ -178,14 +178,17 @@ final class MediaAsset
 
     /**
      * A caption track named on the asset: a path in the same container, or
-     * a full `container::path` id.
+     * a full `container::path` id. Anything but a `.vtt` file is treated as
+     * not found: the field accepts any asset, and a track that is not a
+     * caption file is one the editor would read as garbage and, on save,
+     * overwrite.
      */
     private function resolve(string $reference): ?Asset
     {
-        if (str_contains($reference, '::')) {
-            return \Statamic\Facades\Asset::find($reference);
-        }
+        $asset = str_contains($reference, '::')
+            ? \Statamic\Facades\Asset::find($reference)
+            : $this->asset->container()->asset($reference);
 
-        return $this->asset->container()->asset($reference);
+        return $asset !== null && CaptionTrack::isVtt($asset) ? $asset : null;
     }
 }

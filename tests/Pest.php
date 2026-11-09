@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Statamic\Facades\AssetContainer;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Role;
 use Statamic\Facades\User;
 
 // Only the feature tests boot Statamic. The VTT engine and the assessment
@@ -25,26 +26,42 @@ function captions(string $name): string
 /**
  * An asset container called `media` on a fake disk, so every feature test
  * has somewhere to put a video and a caption file without touching the
- * machine. Returns the container.
+ * machine. Returns the container. A second handle makes a second
+ * container, for what must not cross between them.
  */
-function mediaContainer(): \Statamic\Contracts\Assets\AssetContainer
+function mediaContainer(string $handle = 'media'): \Statamic\Contracts\Assets\AssetContainer
 {
-    Storage::fake('media', ['url' => '/assets/media']);
+    Storage::fake($handle, ['url' => '/assets/'.$handle]);
 
-    return AssetContainer::make('media')->disk('media')->save();
+    return AssetContainer::make($handle)->disk($handle)->save();
 }
 
-/** A file on the media disk. Returns its asset. */
-function mediaFile(string $path, string $contents = 'not really a media file'): \Statamic\Contracts\Assets\Asset
+/** A file on the media disk, or on another container's. Returns its asset. */
+function mediaFile(string $path, string $contents = 'not really a media file', string $container = 'media'): \Statamic\Contracts\Assets\Asset
 {
-    Storage::disk('media')->put($path, $contents);
+    Storage::disk($container)->put($path, $contents);
 
     // The container caches its listing, so a file written behind its back
     // is told to it, the way an upload would.
-    $container = AssetContainer::find('media');
+    $container = AssetContainer::find($container);
     $container->contents()->add($path)->save();
 
     return $container->asset($path);
+}
+
+/**
+ * A user who is not super, with exactly these permissions, logged in. A
+ * super user passes every policy, so a permission is only tested by a
+ * person who has that one and no more.
+ */
+function userWith(array $permissions, string $id = 'someone'): \Statamic\Contracts\Auth\User
+{
+    config()->set('statamic.editions.pro', true);
+    Role::make($id)->permissions($permissions)->save();
+    $user = User::make()->id($id)->email($id.'@example.test')->assignRole($id);
+    $user->save();
+
+    return $user;
 }
 
 /** The addon's settings, rebuilt from the config as it stands now. */

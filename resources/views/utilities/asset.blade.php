@@ -55,7 +55,7 @@
                         <div class="text-sm text-gray-600 dark:text-gray-400">{{ $inspection->document->cueCount() }} cues, {{ round($inspection->document->durationMs() / 1000) }} seconds, {{ count($inspection->errors) }} {{ count($inspection->errors) === 1 ? 'error' : 'errors' }}, {{ count($inspection->warnings) }} quality {{ count($inspection->warnings) === 1 ? 'finding' : 'findings' }} against the @plain($standard->name()) standard.</div>
                     @endif
                 @elseif ($media->chosenTrackIsMissing())
-                    <span class="text-red-600">The file chosen on the asset no longer exists.</span> Choose another in the asset's fields, or clear the choice to use a file beside the video.
+                    <span class="text-red-600">The file chosen on the asset is missing, or is not a WebVTT file.</span> Choose another in the asset's fields, or clear the choice to use a file beside the video.
                 @elseif ($media->kind() === 'video')
                     <span class="text-red-600">None.</span> Put a WebVTT file named @plain(pathinfo($media->asset->basename(), PATHINFO_FILENAME).'.vtt') or @plain(pathinfo($media->asset->basename(), PATHINFO_FILENAME).'.en.vtt') in the same folder, or choose one in the asset's fields.
                 @else

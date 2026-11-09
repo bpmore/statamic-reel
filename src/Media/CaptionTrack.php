@@ -20,6 +20,28 @@ final class CaptionTrack
         public readonly string $language,
     ) {}
 
+    /**
+     * Whether a file is WebVTT, by extension. The only kind Reel reads as
+     * a track, and the only kind it will ever write: the asset's field is
+     * set by a request, so without this it could name a script or an
+     * image in the container and the editor's save would overwrite it.
+     */
+    public static function isVtt(Asset $asset): bool
+    {
+        return strtolower((string) $asset->extension()) === 'vtt';
+    }
+
+    /**
+     * Whether this person may write the file: it is WebVTT, and Statamic's
+     * own `edit <container> assets` permission allows it. The addon's
+     * permission says they may edit captions; this says they may edit this
+     * file, which a chosen track in another container needs separately.
+     */
+    public function editableBy(mixed $user): bool
+    {
+        return $user !== null && self::isVtt($this->asset) && (bool) $user->can('edit', $this->asset);
+    }
+
     public function path(): string
     {
         return $this->asset->path();
